@@ -10,6 +10,7 @@ var cors = require('cors')
 var indexRouter = require('./routes/index')
 var usersRouter = require('./routes/user')
 var todosRouter = require('./routes/todos')
+
 var { default: mongoose } = require('mongoose')
 
 var app = express()
@@ -18,16 +19,18 @@ app.set('views', path.join(__dirname, 'views'))
 app.set('view engine', 'jade')
 
 app.use(logger('dev'))
+
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 app.use(cookieParser())
+
 app.use(express.static(path.join(__dirname, 'public')))
 
 app.use(
   cors({
     origin: process.env.CLIENT_URL,
     credentials: true,
-    methods: ['GET', 'POST', 'DELETE', 'PUT'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
   }),
 )
 
@@ -41,7 +44,7 @@ mongoose
     console.log('database is connected')
   })
   .catch((err) => {
-    console.log(err)
+    console.log('database connection error:', err)
   })
 
 app.use(function (req, res, next) {
