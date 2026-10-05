@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { UserPlus, User, Mail, Lock, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react'
 import { axiosInstance } from '../axiosConfig/axiosInstance'
 
 export default function Register() {
@@ -62,87 +63,144 @@ export default function Register() {
       setLoading(false)
     }
   }
+
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 md:p-8">
-        <div className="text-center mb-7">
-          <h1 className="text-3xl font-bold text-gray-800">Create Account 🚀</h1>
+    <div className="relative min-h-[calc(100vh-68px)] overflow-hidden bg-[#050C09] px-4 py-8 sm:py-10">
+      <div className="pointer-events-none absolute -left-40 -top-40 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
 
-          <p className="text-gray-500 mt-2">Register to start managing your todos</p>
-        </div>
+      <div className="pointer-events-none absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-teal-500/10 blur-3xl" />
 
-        {error && <div className="mb-5 rounded-lg bg-red-100 border border-red-300 text-red-600 px-4 py-3 text-sm">{error}</div>}
+      <div className="pointer-events-none absolute left-1/2 top-1/2 h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-green-500/5 blur-3xl" />
 
-        {success && <div className="mb-5 rounded-lg bg-green-100 border border-green-300 text-green-600 px-4 py-3 text-sm">{success}</div>}
+      <div className="relative mx-auto flex w-full max-w-105 justify-center">
+        <div className="w-full rounded-3xl border border-slate-800/80 bg-[#0A1410]/95 p-6 shadow-[0_25px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:p-8">
+          <div className="mb-7 text-center">
+            <div className="mx-auto mb-4 flex h-13 w-13 items-center justify-center rounded-2xl border border-emerald-800/60 bg-emerald-950/50 text-emerald-400 shadow-[0_8px_25px_rgba(16,185,129,0.10)]">
+              <UserPlus size={23} />
+            </div>
 
-        <form onSubmit={submitHandle} className="flex flex-col gap-5">
-          <div>
-            <label className="block mb-2 font-semibold text-gray-700">Name</label>
+            <h1 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">Create Account</h1>
 
-            <input
-              type="text"
-              name="name"
-              value={obj.name}
-              onChange={changeHandle}
-              placeholder="Enter your name"
-              required
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            />
+            <p className="mt-2 text-sm text-slate-500">Create your MineSpace account and start managing your todos.</p>
           </div>
 
-          <div>
-            <label className="block mb-2 font-semibold text-gray-700">Email</label>
+          {error && (
+            <div className="mb-5 flex items-start gap-3 rounded-xl border border-red-900/60 bg-red-950/30 px-4 py-3 text-sm text-red-400">
+              <AlertCircle size={18} className="mt-0.5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
 
-            <input
-              type="email"
-              name="email"
-              value={obj.email}
-              onChange={changeHandle}
-              placeholder="Enter your email"
-              required
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            />
+          {success && (
+            <div className="mb-5 flex items-start gap-3 rounded-xl border border-emerald-800/60 bg-emerald-950/30 px-4 py-3 text-sm text-emerald-400">
+              <CheckCircle2 size={18} className="mt-0.5 shrink-0" />
+              <span>{success}</span>
+            </div>
+          )}
+
+          <form onSubmit={submitHandle} className="flex flex-col gap-5">
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-300">Name</label>
+
+              <div className="relative">
+                <User size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
+
+                <input
+                  type="text"
+                  name="name"
+                  value={obj.name}
+                  onChange={changeHandle}
+                  placeholder="Enter your name"
+                  required
+                  className="w-full rounded-xl border border-slate-800 bg-[#07100C] py-3.5 pl-11 pr-4 text-sm text-slate-200 outline-none placeholder:text-slate-600 transition-all duration-200 focus:border-emerald-700 focus:bg-[#09150F] focus:ring-4 focus:ring-emerald-500/10"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-300">Email</label>
+
+              <div className="relative">
+                <Mail size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
+
+                <input
+                  type="email"
+                  name="email"
+                  value={obj.email}
+                  onChange={changeHandle}
+                  placeholder="Enter your email"
+                  required
+                  className="w-full rounded-xl border border-slate-800 bg-[#07100C] py-3.5 pl-11 pr-4 text-sm text-slate-200 outline-none placeholder:text-slate-600 transition-all duration-200 focus:border-emerald-700 focus:bg-[#09150F] focus:ring-4 focus:ring-emerald-500/10"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-300">Password</label>
+
+              <div className="relative">
+                <Lock size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
+
+                <input
+                  type="password"
+                  name="password"
+                  value={obj.password}
+                  onChange={changeHandle}
+                  placeholder="Enter password"
+                  required
+                  minLength={6}
+                  className="w-full rounded-xl border border-slate-800 bg-[#07100C] py-3.5 pl-11 pr-4 text-sm text-slate-200 outline-none placeholder:text-slate-600 transition-all duration-200 focus:border-emerald-700 focus:bg-[#09150F] focus:ring-4 focus:ring-emerald-500/10"
+                />
+              </div>
+
+              <p className="mt-2 text-[11px] text-slate-600">Minimum 6 characters</p>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-300">Confirm Password</label>
+
+              <div className="relative">
+                <Lock size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
+
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  value={obj.confirmPassword}
+                  onChange={changeHandle}
+                  placeholder="Confirm password"
+                  required
+                  className="w-full rounded-xl border border-slate-800 bg-[#07100C] py-3.5 pl-11 pr-4 text-sm text-slate-200 outline-none placeholder:text-slate-600 transition-all duration-200 focus:border-emerald-700 focus:bg-[#09150F] focus:ring-4 focus:ring-emerald-500/10"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="group mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-emerald-500 via-green-500 to-teal-500 py-3.5 text-sm font-bold text-white shadow-[0_10px_30px_rgba(16,185,129,0.16)] transition-all duration-200 hover:-translate-y-0.5 hover:from-emerald-400 hover:via-green-400 hover:to-teal-400 hover:shadow-[0_14px_35px_rgba(16,185,129,0.22)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+            >
+              {loading ? (
+                <>
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  REGISTERING...
+                </>
+              ) : (
+                <>
+                  CREATE ACCOUNT
+                  <ArrowRight size={17} className="transition-transform duration-200 group-hover:translate-x-1" />
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="my-6 h-px bg-slate-800" />
+
+          <div className="text-center text-sm text-slate-500">
+            Already have an account?{' '}
+            <Link to="/login" className="font-semibold text-emerald-400 transition-colors hover:text-emerald-300">
+              Login
+            </Link>
           </div>
-
-          <div>
-            <label className="block mb-2 font-semibold text-gray-700">Password</label>
-
-            <input
-              type="password"
-              name="password"
-              value={obj.password}
-              onChange={changeHandle}
-              placeholder="Enter password"
-              required
-              minLength={6}
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            />
-          </div>
-
-          <div>
-            <label className="block mb-2 font-semibold text-gray-700">Confirm Password</label>
-
-            <input
-              type="password"
-              name="confirmPassword"
-              value={obj.confirmPassword}
-              onChange={changeHandle}
-              placeholder="Confirm password"
-              required
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            />
-          </div>
-
-          <button type="submit" disabled={loading} className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white font-bold py-3 rounded-lg transition">
-            {loading ? 'REGISTERING...' : 'REGISTER'}
-          </button>
-        </form>
-
-        <div className="text-center mt-6 text-gray-600">
-          Already have an account?{' '}
-          <Link to="/login" className="text-blue-500 font-semibold hover:underline">
-            Login
-          </Link>
         </div>
       </div>
     </div>
