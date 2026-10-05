@@ -169,7 +169,7 @@ router.post('/logout', function (req, res) {
     sameSite: 'none',
   })
 
-  res.status(200).json({
+  res.status(200).json({  
     message: 'Logout successful',
   })
 })
