@@ -1,62 +1,70 @@
-import React, { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
-
-import Header from './components/Header'
-import Todo from './components/Todo'
-import Login from './pages/Login'
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { useEffect } from 'react'
+import { useUser } from './context/UserContext'
+import UserLayout from './User/UserLayout'
+import Home from './User/Home'
+import Todo from './User/Todo'
+import Notebook from './User/Notebook'
+import Vault from './User/Vault'
+import Dashboard from './User/Dashboard'
 import Register from './pages/Register'
+import NotFoundPage from './User/NotFoundPage'
+import Login from './pages/Login'
+import Profile from './User/Profile'
+
+
 
 const LOGIN_POPUP_KEY = 'minespace_login_popup_closed'
 
-function AppContent() {
-  const location = useLocation()
-
-  const [showLogin, setShowLogin] = useState(false)
+export default function App() {
+  const { user, loading, showLogin, setShowLogin } = useUser()
 
   useEffect(() => {
-    const popupClosed = localStorage.getItem(LOGIN_POPUP_KEY)
+    if (!loading && !user) {
+      const loginPopupClosed = localStorage.getItem(LOGIN_POPUP_KEY)
 
-    if (!popupClosed) {
-      setShowLogin(true)
+      if (!loginPopupClosed) {
+        setShowLogin(true)
+      }
     }
-  }, [])
+  }, [loading, user, setShowLogin])
 
-  const openLogin = () => {
-    setShowLogin(true)
-  }
-
-  const closeLogin = () => {
-    setShowLogin(false)
+  const handleLoginClose = () => {
     localStorage.setItem(LOGIN_POPUP_KEY, 'true')
+    setShowLogin(false)
   }
 
-  const isRegisterPage = location.pathname === '/register'
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F7F0E7]">
+        <div className="text-sm font-semibold text-[#7E563B]">Loading...</div>
+      </div>
+    )
+  }
 
-  return (
-    <div className="min-h-screen bg-[#F7F0E7] text-[#3B2A20]">
-      {!isRegisterPage && <Header onLoginClick={openLogin} />}
-
-      <main>
-        <Routes>
-          <Route path="/" element={<Todo />} />
-
-          <Route path="/login" element={<Navigate to="/" replace />} />
-
-          <Route path="/register" element={<Register onLoginClick={openLogin} />} />
-
-          <Route path="/todo" element={<Todo />} />
-        </Routes>
-      </main>
-
-      {showLogin && <Login onClose={closeLogin} />}
-    </div>
-  )
-}
-
-export default function App() {
   return (
     <BrowserRouter>
-      <AppContent />
+      <Routes>
+        <Route path="/" element={<UserLayout />}>
+          <Route index element={<Home />} />
+
+          <Route path="todo" element={<Todo />} />
+
+          <Route path="notebook" element={<Notebook />} />
+
+          <Route path="vault" element={<Vault />} />
+
+          <Route path="dashboard" element={<Dashboard />} />
+
+          <Route path="profile" element={<Profile />} />
+        </Route>
+
+        <Route path="/register" element={<Register />} />
+
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+
+      {showLogin && <Login onClose={handleLoginClose} />}
     </BrowserRouter>
   )
 }
