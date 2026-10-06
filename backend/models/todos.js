@@ -1,28 +1,57 @@
-var mongoose = require('mongoose')
+const mongoose = require('mongoose')
 
-const todosSchema = new mongoose.Schema(
+const todoSchema = new mongoose.Schema(
   {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'UserMineSpace',
+      required: true,
+      index: true,
+    },
+
     title: {
       type: String,
       required: true,
       trim: true,
     },
 
-    isCompleted: {
+    description: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+
+    priority: {
+      type: String,
+      enum: ['High', 'Medium', 'Low'],
+      default: 'Medium',
+    },
+
+    dueDate: {
+      type: Date,
+      default: null,
+    },
+
+    time: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+
+    category: {
+      type: String,
+      trim: true,
+      default: 'General',
+    },
+
+    completed: {
       type: Boolean,
-      required: true,
       default: false,
     },
 
-    date: {
-      type: Date,
-      default: Date.now,
-    },
-
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'UserToDo',
-      required: true,
+    archived: {
+      type: Boolean,
+      default: false,
     },
   },
   {
@@ -30,6 +59,6 @@ const todosSchema = new mongoose.Schema(
   },
 )
 
-const TodosModel = mongoose.model('todosapp', todosSchema)
+const TodoModel = mongoose.model('TodoMineSpace', todoSchema)
 
-module.exports = TodosModel
+module.exports = TodoModel

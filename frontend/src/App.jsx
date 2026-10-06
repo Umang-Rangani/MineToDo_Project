@@ -1,43 +1,52 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { useEffect } from 'react'
+
 import { useUser } from './context/UserContext'
+
 import UserLayout from './User/UserLayout'
 import Home from './User/Home'
 import Todo from './User/Todo'
 import Notebook from './User/Notebook'
 import Vault from './User/Vault'
 import Dashboard from './User/Dashboard'
-import Register from './pages/Register'
-import NotFoundPage from './User/NotFoundPage'
-import Login from './pages/Login'
 import Profile from './User/Profile'
+import NotFoundPage from './User/NotFoundPage'
 
-
-
-const LOGIN_POPUP_KEY = 'minespace_login_popup_closed'
+import Register from './pages/Register'
+import Login from './pages/Login'
+import ForgotPassword from './pages/ForgotPassword'
 
 export default function App() {
-  const { user, loading, showLogin, setShowLogin } = useUser()
+  const { user, loading, showLogin, setShowLogin, showRegister, setShowRegister } = useUser()
 
   useEffect(() => {
     if (!loading && !user) {
-      const loginPopupClosed = localStorage.getItem(LOGIN_POPUP_KEY)
-
-      if (!loginPopupClosed) {
-        setShowLogin(true)
-      }
+      setShowLogin(true)
     }
   }, [loading, user, setShowLogin])
 
   const handleLoginClose = () => {
-    localStorage.setItem(LOGIN_POPUP_KEY, 'true')
     setShowLogin(false)
+  }
+
+  const handleOpenRegister = () => {
+    setShowLogin(false)
+    setShowRegister(true)
+  }
+
+  const handleRegisterClose = () => {
+    setShowRegister(false)
+  }
+
+  const handleOpenLogin = () => {
+    setShowRegister(false)
+    setShowLogin(true)
   }
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F7F0E7]">
-        <div className="text-sm font-semibold text-[#7E563B]">Loading...</div>
+      <div className="flex min-h-screen items-center justify-center bg-(--color-bg)">
+        <div className="text-sm font-semibold text-(--color-primaryDark)">Loading...</div>
       </div>
     )
   }
@@ -59,12 +68,14 @@ export default function App() {
           <Route path="profile" element={<Profile />} />
         </Route>
 
-        <Route path="/register" element={<Register />} />
-
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
 
-      {showLogin && <Login onClose={handleLoginClose} />}
+      {showLogin && <Login onClose={handleLoginClose} onRegisterClick={handleOpenRegister} />}
+
+      {showRegister && <Register onClose={handleRegisterClose} onLoginClick={handleOpenLogin} />}
+
+      <ForgotPassword />
     </BrowserRouter>
   )
 }

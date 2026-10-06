@@ -10,8 +10,7 @@ var indexRouter = require('./routes/index')
 var usersRouter = require('./routes/user')
 var todosRouter = require('./routes/todos')
 
-var { default: mongoose } = require('mongoose')
-
+var mongoose = require('mongoose')
 var app = express()
 
 app.use(logger('dev'))

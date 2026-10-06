@@ -1,10 +1,12 @@
-import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { UserPlus, User, Mail, Lock, ArrowRight, CheckCircle2, AlertCircle, ShieldCheck, Sparkles } from 'lucide-react'
-import { axiosInstance } from '../axiosConfig/axiosInstance'
+import React, { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { UserPlus, User, Mail, Lock, ArrowRight, CheckCircle2, AlertCircle, ShieldCheck, Sparkles, X, Eye, EyeOff } from 'lucide-react'
 
-export default function Register({ onLoginClick }) {
-  const navigate = useNavigate()
+import { axiosInstance } from '../axiosConfig/axiosInstance'
+import { useUser } from '../context/UserContext'
+
+export default function Register({ onClose }) {
+  const { setShowLogin, setShowRegister } = useUser()
 
   const [obj, setObj] = useState({
     name: '',
@@ -17,11 +19,44 @@ export default function Register({ onLoginClick }) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [])
+
   const changeHandle = (e) => {
     setObj((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
     }))
+
+    if (error) {
+      setError('')
+    }
+
+    if (success) {
+      setSuccess('')
+    }
+  }
+
+  const handleClose = () => {
+    if (loading) return
+
+    setShowRegister(false)
+    onClose?.()
+  }
+
+  const handleLoginClick = () => {
+    if (loading) return
+
+    setShowRegister(false)
+    setShowLogin(true)
   }
 
   const submitHandle = async (e) => {
@@ -45,7 +80,7 @@ export default function Register({ onLoginClick }) {
 
       await axiosInstance.post('/users/register', obj)
 
-      setSuccess('Registration successful! Redirecting to login...')
+      setSuccess('Registration successful! Opening login...')
 
       setObj({
         name: '',
@@ -55,7 +90,8 @@ export default function Register({ onLoginClick }) {
       })
 
       setTimeout(() => {
-        navigate('/login')
+        setShowRegister(false)
+        setShowLogin(true)
       }, 1200)
     } catch (error) {
       setError(error.response?.data?.message || 'Registration failed. Please try again.')
@@ -64,28 +100,54 @@ export default function Register({ onLoginClick }) {
     }
   }
 
-  return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#F7F0E7] px-3 py-4 sm:px-5 sm:py-5">
-      <div className="pointer-events-none absolute -left-32 -top-32 h-72 w-72 rounded-full bg-[#D8B08C]/25 blur-3xl" />
+  const registerContent = (
+    <div className="fixed inset-0 z-99999 flex items-center justify-center overflow-y-auto bg-(--color-text)/45 px-3 py-4 backdrop-blur-xl sm:px-5 sm:py-6">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -left-32 -top-32 h-72 w-72 rounded-full bg-(--color-secondary)/20 blur-3xl" />
 
-      <div className="pointer-events-none absolute -bottom-32 -right-32 h-80 w-80 rounded-full bg-[#B8794A]/15 blur-3xl" />
+        <div className="absolute -bottom-32 -right-32 h-80 w-80 rounded-full bg-(--color-primary)/15 blur-3xl" />
 
-      <div className="pointer-events-none absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#E8D4C0]/25 blur-3xl" />
-
-      <div className="pointer-events-none absolute left-[8%] top-[20%] hidden rotate-[-10deg] rounded-xl border border-[#B8794A]/15 bg-[#FFF9F2]/30 p-2.5 text-[#A97850]/25 sm:block">
-        <Sparkles size={18} />
+        <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-(--color-soft)/25 blur-3xl" />
       </div>
 
-      <div className="pointer-events-none absolute bottom-[18%] right-[9%] hidden rotate-12 rounded-xl border border-[#B8794A]/15 bg-[#FFF9F2]/30 p-2.5 text-[#A97850]/25 sm:block">
-        <UserPlus size={18} />
+      <div className="pointer-events-none absolute inset-0 hidden overflow-hidden sm:block">
+        <div className="absolute left-[8%] top-[20%] -rotate-10 rounded-xl border border-(--color-primary)/15 bg-(--color-surface)/20 p-2.5 text-(--color-secondary)/30 backdrop-blur-sm">
+          <Sparkles size={18} />
+        </div>
+
+        <div className="absolute right-[9%] top-[22%] rotate-12 rounded-xl border border-(--color-primary)/15 bg-(--color-surface)/20 p-2.5 text-(--color-secondary)/30 backdrop-blur-sm">
+          <UserPlus size={18} />
+        </div>
+
+        <div className="absolute bottom-[18%] left-[10%] rotate-6 rounded-xl border border-(--color-secondary)/15 bg-(--color-surface)/20 p-2.5 text-(--color-secondary)/25 backdrop-blur-sm">
+          <ShieldCheck size={18} />
+        </div>
+
+        <div className="absolute bottom-[18%] right-[10%] -rotate-8 rounded-xl border border-(--color-primary)/15 bg-(--color-surface)/20 p-2.5 text-(--color-secondary)/25 backdrop-blur-sm">
+          <CheckCircle2 size={18} />
+        </div>
+
+        <Sparkles size={16} className="absolute left-[23%] top-[14%] text-(--color-secondary)/25" />
+
+        <Sparkles size={17} className="absolute bottom-[14%] right-[24%] text-(--color-secondary)/25" />
       </div>
 
-      <div className="relative w-full max-w-95 sm:max-w-105">
-        <div className="overflow-hidden rounded-3xl border border-[#E4D5C5] bg-[#FFF9F2]/98 shadow-[0_20px_60px_rgba(91,61,39,0.18)] backdrop-blur-xl">
-          <div className="relative overflow-hidden bg-linear-to-br from-[#9A6847] via-[#B8794A] to-[#7E563B] px-5 py-4 text-white sm:px-6 sm:py-5">
+      <div className="relative w-full max-w-105">
+        <button
+          type="button"
+          onClick={handleClose}
+          disabled={loading}
+          aria-label="Close registration"
+          className="absolute -right-2 -top-2 z-30 flex h-9 w-9 items-center justify-center rounded-full border border-(--color-border) bg-(--color-surface) text-(--color-muted) shadow-lg shadow-(--color-text)/15 transition-all duration-200 hover:scale-105 hover:border-(--color-danger) hover:bg-(--color-dangerBg) hover:text-(--color-danger) disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <X size={18} />
+        </button>
+
+        <div className="overflow-hidden rounded-3xl border border-(--color-border) bg-(--color-surface) shadow-[0_25px_80px_rgba(91,61,39,0.25)]">
+          <div className="relative overflow-hidden bg-linear-to-br from-(--color-secondary) via-(--color-primary) to-(--color-primaryDark) px-5 py-4 text-white sm:px-6 sm:py-5">
             <div className="pointer-events-none absolute -right-12 -top-12 h-28 w-28 rounded-full bg-white/15 blur-2xl" />
 
-            <div className="pointer-events-none absolute -bottom-14 -left-8 h-28 w-28 rounded-full bg-[#F7EBDD]/15 blur-2xl" />
+            <div className="pointer-events-none absolute -bottom-14 -left-8 h-28 w-28 rounded-full bg-white/10 blur-2xl" />
 
             <div className="relative flex items-center gap-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/12 shadow-lg backdrop-blur-md">
@@ -109,14 +171,14 @@ export default function Register({ onLoginClick }) {
 
           <div className="px-4 py-4 sm:px-5 sm:py-5">
             {error && (
-              <div className="mb-3 flex items-center gap-2.5 rounded-xl border border-[#E2BDB4] bg-[#FFF1EE] px-3 py-2.5 text-[11px] font-medium text-[#B24F43]">
+              <div className="mb-3 flex items-center gap-2.5 rounded-xl border border-(--color-danger)/25 bg-(--color-dangerBg) px-3 py-2.5 text-[11px] font-medium text-(--color-danger)">
                 <AlertCircle size={15} className="shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
             {success && (
-              <div className="mb-3 flex items-center gap-2.5 rounded-xl border border-[#D8C3A9] bg-[#F8F0E6] px-3 py-2.5 text-[11px] font-medium text-[#8C694C]">
+              <div className="mb-3 flex items-center gap-2.5 rounded-xl border border-(--color-secondary)/20 bg-(--color-soft) px-3 py-2.5 text-[11px] font-medium text-(--color-primaryDark)">
                 <CheckCircle2 size={15} className="shrink-0" />
                 <span>{success}</span>
               </div>
@@ -124,12 +186,15 @@ export default function Register({ onLoginClick }) {
 
             <form onSubmit={submitHandle} className="flex flex-col gap-3">
               <div>
-                <label className="mb-1.5 block text-[11px] font-bold text-[#594235]">Name</label>
+                <label htmlFor="register-name" className="mb-1.5 block text-[11px] font-bold text-(--color-text)">
+                  Name
+                </label>
 
                 <div className="relative">
-                  <User size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A97850]" />
+                  <User size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-(--color-secondary)" />
 
                   <input
+                    id="register-name"
                     type="text"
                     name="name"
                     value={obj.name}
@@ -137,18 +202,22 @@ export default function Register({ onLoginClick }) {
                     placeholder="Enter your name"
                     required
                     autoComplete="name"
-                    className="w-full rounded-xl border border-[#E4D5C5] bg-[#FDF8F2] py-2.5 pl-10 pr-3.5 text-xs text-[#3B2A20] outline-none placeholder:text-[#A8988A] transition-all duration-200 focus:border-[#B8794A] focus:bg-[#FFFDF9] focus:ring-4 focus:ring-[#B8794A]/10 sm:text-sm"
+                    disabled={loading}
+                    className="w-full rounded-xl border border-(--color-border) bg-(--color-bg) py-2.5 pl-10 pr-3.5 text-xs text-(--color-text) outline-none placeholder:text-(--color-muted) transition-all duration-200 focus:border-(--color-primary) focus:bg-(--color-surface) focus:ring-4 focus:ring-(--color-primary)/10 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="mb-1.5 block text-[11px] font-bold text-[#594235]">Email</label>
+                <label htmlFor="register-email" className="mb-1.5 block text-[11px] font-bold text-(--color-text)">
+                  Email
+                </label>
 
                 <div className="relative">
-                  <Mail size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A97850]" />
+                  <Mail size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-(--color-secondary)" />
 
                   <input
+                    id="register-email"
                     type="email"
                     name="email"
                     value={obj.email}
@@ -156,19 +225,23 @@ export default function Register({ onLoginClick }) {
                     placeholder="Enter your email"
                     required
                     autoComplete="email"
-                    className="w-full rounded-xl border border-[#E4D5C5] bg-[#FDF8F2] py-2.5 pl-10 pr-3.5 text-xs text-[#3B2A20] outline-none placeholder:text-[#A8988A] transition-all duration-200 focus:border-[#B8794A] focus:bg-[#FFFDF9] focus:ring-4 focus:ring-[#B8794A]/10 sm:text-sm"
+                    disabled={loading}
+                    className="w-full rounded-xl border border-(--color-border) bg-(--color-bg) py-2.5 pl-10 pr-3.5 text-xs text-(--color-text) outline-none placeholder:text-(--color-muted) transition-all duration-200 focus:border-(--color-primary) focus:bg-(--color-surface) focus:ring-4 focus:ring-(--color-primary)/10 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="mb-1.5 block text-[11px] font-bold text-[#594235]">Password</label>
+                <label htmlFor="register-password" className="mb-1.5 block text-[11px] font-bold text-(--color-text)">
+                  Password
+                </label>
 
                 <div className="relative">
-                  <Lock size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A97850]" />
+                  <Lock size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-(--color-secondary)" />
 
                   <input
-                    type="password"
+                    id="register-password"
+                    type={showPassword ? 'text' : 'password'}
                     name="password"
                     value={obj.password}
                     onChange={changeHandle}
@@ -176,36 +249,61 @@ export default function Register({ onLoginClick }) {
                     required
                     minLength={6}
                     autoComplete="new-password"
-                    className="w-full rounded-xl border border-[#E4D5C5] bg-[#FDF8F2] py-2.5 pl-10 pr-3.5 text-xs text-[#3B2A20] outline-none placeholder:text-[#A8988A] transition-all duration-200 focus:border-[#B8794A] focus:bg-[#FFFDF9] focus:ring-4 focus:ring-[#B8794A]/10 sm:text-sm"
+                    disabled={loading}
+                    className="w-full rounded-xl border border-(--color-border) bg-(--color-bg) py-2.5 pl-10 pr-11 text-xs text-(--color-text) outline-none placeholder:text-(--color-muted) transition-all duration-200 focus:border-(--color-primary) focus:bg-(--color-surface) focus:ring-4 focus:ring-(--color-primary)/10 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
                   />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    disabled={loading}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-2.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-(--color-muted) transition-colors hover:bg-(--color-soft) hover:text-(--color-primaryDark) disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
                 </div>
 
-                <p className="mt-1 text-[9px] text-[#9A897B]">Minimum 6 characters</p>
+                <p className="mt-1 text-[9px] text-(--color-muted)">Minimum 6 characters</p>
               </div>
 
               <div>
-                <label className="mb-1.5 block text-[11px] font-bold text-[#594235]">Confirm Password</label>
+                <label htmlFor="register-confirm-password" className="mb-1.5 block text-[11px] font-bold text-(--color-text)">
+                  Confirm Password
+                </label>
 
                 <div className="relative">
-                  <Lock size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A97850]" />
+                  <Lock size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-(--color-secondary)" />
 
                   <input
-                    type="password"
+                    id="register-confirm-password"
+                    type={showConfirmPassword ? 'text' : 'password'}
                     name="confirmPassword"
                     value={obj.confirmPassword}
                     onChange={changeHandle}
                     placeholder="Confirm password"
                     required
                     autoComplete="new-password"
-                    className="w-full rounded-xl border border-[#E4D5C5] bg-[#FDF8F2] py-2.5 pl-10 pr-3.5 text-xs text-[#3B2A20] outline-none placeholder:text-[#A8988A] transition-all duration-200 focus:border-[#B8794A] focus:bg-[#FFFDF9] focus:ring-4 focus:ring-[#B8794A]/10 sm:text-sm"
+                    disabled={loading}
+                    className="w-full rounded-xl border border-(--color-border) bg-(--color-bg) py-2.5 pl-10 pr-11 text-xs text-(--color-text) outline-none placeholder:text-(--color-muted) transition-all duration-200 focus:border-(--color-primary) focus:bg-(--color-surface) focus:ring-4 focus:ring-(--color-primary)/10 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
                   />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    disabled={loading}
+                    aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                    className="absolute right-2.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-(--color-muted) transition-colors hover:bg-(--color-soft) hover:text-(--color-primaryDark) disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
                 </div>
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="group mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-[#B8794A] via-[#A66F48] to-[#7E563B] py-2.5 text-xs font-bold text-white shadow-lg shadow-[#A97850]/20 transition-all duration-200 hover:-translate-y-0.5 hover:from-[#C48758] hover:via-[#B8794A] hover:to-[#8C6043] hover:shadow-xl hover:shadow-[#A97850]/25 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:py-3 sm:text-sm"
+                className="group mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-(--color-primary) via-(--color-secondary) to-(--color-primaryDark) py-2.5 text-xs font-bold text-white shadow-lg shadow-(--color-primary)/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-(--color-primary)/25 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:py-3 sm:text-sm"
               >
                 {loading ? (
                   <>
@@ -221,19 +319,27 @@ export default function Register({ onLoginClick }) {
               </button>
             </form>
 
-            <div className="my-3.5 h-px bg-[#E8D8C8]" />
+            <div className="my-3.5 h-px bg-(--color-borderSoft)" />
 
-            <div className="text-center text-[11px] text-[#806F62] sm:text-xs">
+            <div className="text-center text-[11px] text-(--color-muted) sm:text-xs">
               Already have an account?{' '}
-              <button type="button" onClick={onLoginClick} className="font-bold text-[#A66F48] transition-colors hover:text-[#7E563B] hover:underline">
+              <button type="button" onClick={handleLoginClick} disabled={loading} className="font-bold text-(--color-secondary) transition-colors hover:text-(--color-primaryDark) hover:underline disabled:cursor-not-allowed disabled:opacity-50">
                 Login
               </button>
+            </div>
+
+            <div className="mt-4 flex items-center justify-center gap-2">
+              <ShieldCheck size={11} className="text-(--color-muted)" />
+
+              <span className="text-[9px] text-(--color-muted)">Secure access to your MineSpace workspace</span>
             </div>
           </div>
         </div>
 
-        <p className="mt-2.5 text-center text-[9px] text-[#806F62]">Your workspace. Your focus. Your MineSpace.</p>
+        <p className="mt-2.5 text-center text-[9px] text-(--color-muted)">Your workspace. Your focus. Your MineSpace.</p>
       </div>
     </div>
   )
+
+  return createPortal(registerContent, document.body)
 }

@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
-    email: {
+    email: {  
       type: String,
       required: true,
       unique: true,
@@ -38,6 +38,6 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   },
 )
-const User = mongoose.model('UserToDo', userSchema)
+const User = mongoose.model('UserMineSpace', userSchema)
 
 module.exports = User
