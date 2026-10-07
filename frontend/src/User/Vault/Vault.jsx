@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { Archive, FolderLock, KeyRound, LockKeyhole, ShieldCheck, Trash2, UnlockKeyhole, X } from 'lucide-react'
 
-import Credentials, { initialCredentials } from './Vault/Credentials'
+import Credentials, { initialCredentials } from './Credentials'
 
-import PrivateFiles, { initialFiles } from './Vault/PrivateFiles'
+import PrivateFiles, { initialFiles } from './PrivateFiles'
 
 export default function Vault() {
   const [vaultPassword, setVaultPassword] = useState('')

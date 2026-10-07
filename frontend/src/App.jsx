@@ -5,9 +5,7 @@ import { useUser } from './context/UserContext'
 
 import UserLayout from './User/UserLayout'
 import Home from './User/Home'
-import Todo from './User/Todo'
 import Notebook from './User/Notebook'
-import Vault from './User/Vault'
 import Dashboard from './User/Dashboard'
 import Profile from './User/Profile'
 import NotFoundPage from './User/NotFoundPage'
@@ -15,6 +13,8 @@ import NotFoundPage from './User/NotFoundPage'
 import Register from './pages/Register'
 import Login from './pages/Login'
 import ForgotPassword from './pages/ForgotPassword'
+import Vault from './User/Vault/Vault'
+import Todo from './User/Todo/Todo'
 
 export default function App() {
   const { user, loading, showLogin, setShowLogin, showRegister, setShowRegister } = useUser()
