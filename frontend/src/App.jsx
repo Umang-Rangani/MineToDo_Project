@@ -15,6 +15,9 @@ import Login from './pages/Login'
 import ForgotPassword from './pages/ForgotPassword'
 import Vault from './User/Vault/Vault'
 import Todo from './User/Todo/Todo'
+import Archived from './User/Archived'
+import TodoArchived from './User/Todo/TodoArchived'
+import NotebookArchived from './Notebook/NotebookArchived'
 
 export default function App() {
   const { user, loading, showLogin, setShowLogin, showRegister, setShowRegister } = useUser()
@@ -58,12 +61,18 @@ export default function App() {
           <Route index element={<Home />} />
 
           <Route path="todo" element={<Todo />} />
-
           <Route path="notebook" element={<Notebook />} />
-
           <Route path="vault" element={<Vault />} />
-
           <Route path="dashboard" element={<Dashboard />} />
+
+          <Route path="archived" element={<Archived />}>
+            <Route index element={<TodoArchived />} />
+            <Route path="notebook" element={<NotebookArchived />} />
+          </Route>
+
+          {/* <Route path="archived" element={<Archived />} /> */}
+          {/* <Route path="archived" element={<TodoArchived />} />
+          <Route path="notebook/archived" element={<NotebookArchived />} /> */}
 
           <Route path="profile" element={<Profile />} />
         </Route>

@@ -17,13 +17,12 @@ export default function UserLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-(--color-bg) text-(--color-text)">
+    <div className="flex h-dvh flex-col overflow-hidden bg-(--color-bg) text-(--color-text)">
       <Header
         onMenuClick={() => setMobileSidebarOpen(true)}
         onLoginClick={() => {
           window.dispatchEvent(new Event('open-login'))
         }}
-        
         onRegisterClick={() => {
           window.dispatchEvent(new Event('open-register'))
         }}
@@ -33,12 +32,12 @@ export default function UserLayout() {
 
       <main
         className={`
-          min-h-screen pt-17
-          transition-all duration-300
-          ${sidebarOpen ? 'lg:pl-64' : 'lg:pl-20'}
-        `}
+      min-h-0 min-w-0 flex-1 overflow-hidden pt-17
+      transition-all duration-300
+      ${sidebarOpen ? 'lg:pl-64' : 'lg:pl-20'}
+    `}
       >
-        <div className="min-h-[calc(100vh-68px)] px-3 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
+        <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden px-3 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
           <Outlet />
         </div>
       </main>

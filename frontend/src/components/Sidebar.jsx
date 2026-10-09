@@ -1,7 +1,8 @@
 import React from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { BarChart3, BookOpen, CheckSquare, ChevronLeft, ChevronRight, CircleUserRound, FileKey2, Home, LogOut, X } from 'lucide-react'
+import { ArchiveRestore, BarChart3, BookOpen, CheckSquare, ChevronLeft, ChevronRight, CircleUserRound, FileKey2, Home, LogOut, X } from 'lucide-react'
 import { FiGrid } from 'react-icons/fi'
+
 
 import { useUser } from '../context/UserContext'
 
@@ -21,11 +22,17 @@ const navigationItems = [
     path: '/notebook',
     icon: BookOpen,
   },
-  // {
-  //   label: 'Vault',
-  //   path: '/vault',
-  //   icon: FileKey2,
-  // },
+  {
+    label: 'Vault',
+    path: '/vault',
+    icon: FileKey2,
+  },
+
+  {
+    label: 'Archived',
+    path: '/archived',
+    icon: ArchiveRestore,
+  },
   // {
   //   label: 'Dashboard',
   //   path: '/dashboard',

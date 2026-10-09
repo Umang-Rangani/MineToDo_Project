@@ -38,12 +38,6 @@ const todoSchema = new mongoose.Schema(
       default: '',
     },
 
-    category: {
-      type: String,
-      trim: true,
-      default: 'General',
-    },
-
     completed: {
       type: Boolean,
       default: false,
@@ -52,6 +46,11 @@ const todoSchema = new mongoose.Schema(
     archived: {
       type: Boolean,
       default: false,
+    },
+
+    archivedAt: {
+      type: Date,
+      default: null,
     },
   },
   {
