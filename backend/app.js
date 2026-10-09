@@ -9,6 +9,7 @@ var cors = require('cors')
 var indexRouter = require('./routes/index')
 var usersRouter = require('./routes/user')
 var todosRouter = require('./routes/todos')
+var notebookRouter = require('./routes/notebook')
 
 var mongoose = require('mongoose')
 var app = express()
@@ -29,6 +30,7 @@ app.use(
 
 app.use('/', indexRouter)
 app.use('/todos', todosRouter)
+app.use('/notebook', notebookRouter)
 app.use('/users', usersRouter)
 
 mongoose
