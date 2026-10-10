@@ -4,7 +4,6 @@ import { useEffect } from 'react'
 import { useUser } from './context/UserContext'
 
 import UserLayout from './User/UserLayout'
-import Home from './User/Home'
 import Notebook from './User/Notebook'
 import Dashboard from './User/Dashboard'
 import Profile from './User/Profile'
@@ -18,6 +17,7 @@ import Todo from './User/Todo/Todo'
 import Archived from './User/Archived'
 import TodoArchived from './User/Todo/TodoArchived'
 import NotebookArchived from './Notebook/NotebookArchived'
+import WorldClock from './User/WorldClock'
 
 export default function App() {
   const { user, loading, showLogin, setShowLogin, showRegister, setShowRegister } = useUser()
@@ -58,7 +58,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<UserLayout />}>
-          <Route index element={<Home />} />
+          <Route index element={<WorldClock />} />
 
           <Route path="todo" element={<Todo />} />
           <Route path="notebook" element={<Notebook />} />

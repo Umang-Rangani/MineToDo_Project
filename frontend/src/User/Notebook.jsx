@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Archive, ArchiveRestore, Check, ChevronLeft, ChevronRight, Clock3, FilePlus2, FileText, MoreHorizontal, NotebookPen, Plus, Search, Save, Trash2, X } from 'lucide-react'
+import { Archive, ArchiveRestore, Check, Clock3, FilePlus2, FileText, MoreHorizontal, NotebookPen, Plus, Search, Save, Trash2, X } from 'lucide-react'
 import { FaRegClock, FaRegStickyNote } from 'react-icons/fa'
+import { axiosInstance } from '../axiosConfig/axiosInstance'
 
 const getDateKey = (date = new Date()) => {
   const year = date.getFullYear()
@@ -37,50 +38,28 @@ const formatDate = (dateKey) => {
   })
 }
 
-const getInitialNotes = () => {
-  const today = new Date()
-  const yesterday = new Date()
-  const twoDaysAgo = new Date()
-
-  yesterday.setDate(today.getDate() - 1)
-  twoDaysAgo.setDate(today.getDate() - 2)
-
-  return [
-    {
-      id: 1,
-      title: 'Project Ideas',
-      content: 'Build a clean productivity workspace with Todo, Notebook and Vault.',
-      dateKey: getDateKey(today),
-      updatedAt: 'Just now',
-      archived: false,
-    },
-    {
-      id: 2,
-      title: 'Shopping List',
-      content: 'New keyboard, notebook, desk lamp and a comfortable office chair.',
-      dateKey: getDateKey(yesterday),
-      updatedAt: 'Yesterday',
-      archived: false,
-    },
-    {
-      id: 3,
-      title: 'Learning Plan',
-      content: 'Complete React, Node.js, MongoDB and deployment concepts step by step.',
-      dateKey: getDateKey(twoDaysAgo),
-      updatedAt: '2 days ago',
-      archived: false,
-    },
-  ]
-}
-
 const HISTORY_DAYS = 14
 
-export default function Notebook() {
-  const [notes, setNotes] = useState(getInitialNotes)
-  const [selectedNoteId, setSelectedNoteId] = useState(1)
+const normalizeNote = (note) => ({
+  ...note,
+  id: note._id || note.id,
+  title: note.title || 'Untitled Note',
+  content: note.content || '',
+  archived: Boolean(note.archived),
+  updatedAt: note.updatedAt
+    ? new Date(note.updatedAt).toLocaleString('en-IN', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      })
+    : 'Just now',
+})
 
-  const [title, setTitle] = useState('Project Ideas')
-  const [content, setContent] = useState('Build a clean productivity workspace with Todo, Notebook and Vault.')
+export default function Notebook() {
+  const [notes, setNotes] = useState([])
+  const [selectedNoteId, setSelectedNoteId] = useState(null)
+
+  const [title, setTitle] = useState('')
+  const [content, setContent] = useState('')
 
   const [search, setSearch] = useState('')
   const [showSearch, setShowSearch] = useState(false)
@@ -96,6 +75,10 @@ export default function Notebook() {
   const [showNotesPanel, setShowNotesPanel] = useState(false)
   const [isNewNote, setIsNewNote] = useState(false)
 
+  const [loadingNotes, setLoadingNotes] = useState(true)
+  const [apiError, setApiError] = useState('')
+  const [actionLoading, setActionLoading] = useState(false)
+
   const menuRef = useRef(null)
   const searchRef = useRef(null)
   const titleRef = useRef(null)
@@ -106,6 +89,7 @@ export default function Notebook() {
     return Array.from({ length: HISTORY_DAYS }, (_, index) => {
       const date = new Date()
       date.setDate(date.getDate() - index - historyOffset)
+
       return {
         key: getDateKey(date),
         date,
@@ -124,7 +108,9 @@ export default function Notebook() {
 
         return note.title.toLowerCase().includes(normalizedSearch) || note.content.toLowerCase().includes(normalizedSearch)
       })
-      .sort((a, b) => b.id - a.id)
+      .sort((a, b) => {
+        return new Date(b.updatedAtRaw || b.updatedAt) - new Date(a.updatedAtRaw || a.updatedAt)
+      })
   }, [notes, search, selectedDate, showArchived])
 
   const dateNoteCounts = useMemo(() => {
@@ -138,6 +124,40 @@ export default function Notebook() {
   }, [notes, showArchived])
 
   const deleteTarget = useMemo(() => notes.find((note) => note.id === deleteTargetId) || null, [notes, deleteTargetId])
+
+  const fetchNotes = async () => {
+    setLoadingNotes(true)
+    setApiError('')
+
+    try {
+      const response = await axiosInstance.get('/notebook')
+      const fetchedNotes = (response.data.notes || []).map((note) => ({
+        ...normalizeNote(note),
+        updatedAtRaw: note.updatedAt || note.createdAt || new Date().toISOString(),
+      }))
+
+      setNotes(fetchedNotes)
+
+      setSelectedNoteId((currentId) => {
+        if (currentId && fetchedNotes.some((note) => note.id === currentId)) {
+          return currentId
+        }
+
+        const todayNote = fetchedNotes.find((note) => note.dateKey === getDateKey())
+
+        return todayNote?.id ?? null
+      })
+    } catch (error) {
+      console.error('Fetch notes error:', error)
+      setApiError(error.response?.data?.message || 'Failed to load notes. Please try again.')
+    } finally {
+      setLoadingNotes(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchNotes()
+  }, [])
 
   useEffect(() => {
     if (isNewNote) return
@@ -171,6 +191,7 @@ export default function Notebook() {
         setOpenMenuId(null)
         setShowDeleteConfirm(false)
         setDeleteTargetId(null)
+        setShowNotesPanel(false)
       }
     }
 
@@ -184,7 +205,7 @@ export default function Notebook() {
   }, [])
 
   useEffect(() => {
-    if (!showDeleteConfirm) return
+    if (!showDeleteConfirm && !showNotesPanel) return
 
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -192,7 +213,12 @@ export default function Notebook() {
     return () => {
       document.body.style.overflow = previousOverflow
     }
-  }, [showDeleteConfirm])
+  }, [showDeleteConfirm, showNotesPanel])
+
+  const closeNotesPanel = () => {
+    setShowNotesPanel(false)
+    setOpenMenuId(null)
+  }
 
   const selectNote = (note) => {
     setSelectedNoteId(note.id)
@@ -218,94 +244,131 @@ export default function Notebook() {
     setTimeout(() => titleRef.current?.focus(), 0)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (actionLoading) return
+
     const trimmedTitle = title.trim()
     const trimmedContent = content.trim()
 
     if (!trimmedTitle && !trimmedContent) return
 
     const noteTitle = trimmedTitle || 'Untitled Note'
-    const now = new Date()
-    const dateKey = getDateKey(now)
+    const dateKey = selectedNote?.dateKey || selectedDate || getDateKey()
 
-    if (selectedNoteId !== null && !isNewNote) {
-      setNotes((previousNotes) =>
-        previousNotes.map((note) =>
-          note.id === selectedNoteId
-            ? {
-                ...note,
-                title: noteTitle,
-                content: trimmedContent,
-                dateKey,
-                updatedAt: 'Just now',
-              }
-            : note,
-        ),
-      )
-    } else {
-      const newNote = {
-        id: Date.now(),
-        title: noteTitle,
-        content: trimmedContent,
-        dateKey,
-        updatedAt: 'Just now',
-        archived: false,
+    setActionLoading(true)
+    setSaveStatus('saving')
+    setApiError('')
+
+    try {
+      let response
+
+      if (selectedNoteId && !isNewNote) {
+        response = await axiosInstance.put(`/notebook/${selectedNoteId}`, {
+          title: noteTitle,
+          content: trimmedContent,
+          dateKey,
+        })
+      } else {
+        response = await axiosInstance.post('/notebook', {
+          title: noteTitle,
+          content: trimmedContent,
+          dateKey,
+        })
       }
 
-      setNotes((previousNotes) => [newNote, ...previousNotes])
-      setSelectedNoteId(newNote.id)
-    }
+      const savedNote = {
+        ...normalizeNote(response.data.note),
+        updatedAtRaw: response.data.note.updatedAt || response.data.note.createdAt || new Date().toISOString(),
+      }
 
-    setTitle(noteTitle)
-    setContent(trimmedContent)
-    setSelectedDate(dateKey)
-    setShowArchived(false)
-    setIsNewNote(false)
-    setSaveStatus('saved')
+      setNotes((previous) => {
+        const exists = previous.some((note) => note.id === savedNote.id)
+
+        if (exists) {
+          return previous.map((note) => (note.id === savedNote.id ? savedNote : note))
+        }
+
+        return [savedNote, ...previous]
+      })
+
+      setSelectedNoteId(savedNote.id)
+      setSelectedDate(savedNote.dateKey)
+      setTitle(savedNote.title)
+      setContent(savedNote.content)
+      setShowArchived(false)
+      setIsNewNote(false)
+      setSaveStatus('saved')
+    } catch (error) {
+      console.error('Save note error:', error)
+      setApiError(error.response?.data?.message || 'Failed to save note. Please try again.')
+      setSaveStatus('unsaved')
+    } finally {
+      setActionLoading(false)
+    }
   }
 
-  const handleDelete = () => {
-    if (deleteTargetId === null) return
+  const handleDelete = async () => {
+    if (deleteTargetId === null || actionLoading) return
 
-    const remainingNotes = notes.filter((note) => note.id !== deleteTargetId)
+    setActionLoading(true)
+    setApiError('')
 
-    setNotes(remainingNotes)
+    try {
+      await axiosInstance.delete(`/notebook/${deleteTargetId}`)
 
-    if (selectedNoteId === deleteTargetId) {
-      const nextNote = remainingNotes.find((note) => Boolean(note.archived) === showArchived && note.dateKey === selectedDate)
+      const remainingNotes = notes.filter((note) => note.id !== deleteTargetId)
 
-      if (nextNote) {
-        setSelectedNoteId(nextNote.id)
-        setTitle(nextNote.title)
-        setContent(nextNote.content)
-        setIsNewNote(false)
-      } else {
+      setNotes(remainingNotes)
+
+      if (selectedNoteId === deleteTargetId) {
+        const nextNote = remainingNotes.find((note) => Boolean(note.archived) === showArchived && note.dateKey === selectedDate)
+
+        setSelectedNoteId(nextNote?.id ?? null)
+        setTitle(nextNote?.title || '')
+        setContent(nextNote?.content || '')
+        setIsNewNote(!nextNote)
+      }
+
+      setShowDeleteConfirm(false)
+      setDeleteTargetId(null)
+      setOpenMenuId(null)
+      setSaveStatus('saved')
+    } catch (error) {
+      console.error('Delete note error:', error)
+      setApiError(error.response?.data?.message || 'Failed to delete note. Please try again.')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleArchive = async (note) => {
+    if (actionLoading) return
+
+    setActionLoading(true)
+    setApiError('')
+
+    try {
+      const endpoint = note.archived ? `/notebook/${note.id}/unarchive` : `/notebook/${note.id}/archive`
+
+      await axiosInstance.put(endpoint)
+
+      setNotes((previous) => previous.filter((item) => item.id !== note.id))
+
+      if (selectedNoteId === note.id) {
         setSelectedNoteId(null)
         setTitle('')
         setContent('')
         setIsNewNote(true)
+        setSaveStatus('saved')
       }
+
+      setOpenMenuId(null)
+    } catch (error) {
+      console.error('Archive note error:', error)
+      setApiError(error.response?.data?.message || 'Failed to update archive. Please try again.')
+    } finally {
+      setActionLoading(false)
     }
-
-    setShowDeleteConfirm(false)
-    setDeleteTargetId(null)
-    setOpenMenuId(null)
-    setSaveStatus('saved')
-  }
-
-  const handleArchive = (note) => {
-    const nextArchivedState = !note.archived
-
-    setNotes((previousNotes) => previousNotes.map((item) => (item.id === note.id ? { ...item, archived: nextArchivedState } : item)))
-
-    if (selectedNoteId === note.id) {
-      setSelectedNoteId(null)
-      setTitle('')
-      setContent('')
-      setIsNewNote(true)
-    }
-
-    setOpenMenuId(null)
   }
 
   const handleEdit = (note) => {
@@ -358,8 +421,8 @@ export default function Notebook() {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 text-(--color-text)">
-      <div className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row">
-        <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-(--color-border) bg-(--color-surface) shadow-sm">
+      <div className="relative flex min-h-0 flex-1 flex-col gap-4 pb-18 lg:flex-row lg:pb-0">
+        <section className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-(--color-border) bg-(--color-surface) shadow-sm">
           <header className="flex shrink-0 items-center justify-between gap-3 border-b border-(--color-border) px-4 py-3 sm:px-5">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-(--color-soft) text-(--color-primary)">
@@ -375,14 +438,14 @@ export default function Notebook() {
             <div className="flex shrink-0 items-center gap-2">
               <button type="button" onClick={handleNewNote} className="inline-flex items-center gap-2 rounded-xl border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm font-semibold transition hover:bg-(--color-soft)">
                 <FilePlus2 size={16} />
-                <span className="hidden sm:inline">New Note</span>
-                <span className="sm:hidden">New</span>
+                <span className="hidden sm:inline">Clear</span>
+                <span className="sm:hidden">Clear</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={!title.trim() && !content.trim()}
+                disabled={actionLoading || (!title.trim() && !content.trim())}
                 className="inline-flex items-center gap-2 rounded-xl bg-(--color-primary) px-3 py-2 text-sm font-semibold text-white transition hover:bg-(--color-primaryDark) disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Save size={16} />
@@ -391,7 +454,7 @@ export default function Notebook() {
             </div>
           </header>
 
-          <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-6">
+          <div className="relative flex min-h-0 flex-1 flex-col p-4 sm:p-6">
             <div className="mb-4 flex shrink-0 items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2 text-xs text-(--color-muted)">
                 <FaRegClock className="shrink-0" />
@@ -407,11 +470,14 @@ export default function Notebook() {
                 ) : (
                   <>
                     <Clock3 size={14} className="text-(--color-muted)" />
-                    <span className="text-(--color-muted)">Unsaved changes</span>
+                    <span className="text-(--color-muted)">{saveStatus === 'saving' ? 'Saving...' : 'Unsaved changes'}</span>
                   </>
                 )}
               </div>
             </div>
+
+
+            {loadingNotes && <p className="mb-3 text-sm text-(--color-muted)">Loading notes...</p>}
 
             <div className="flex min-h-0 flex-1 flex-col">
               <input
@@ -432,19 +498,35 @@ export default function Notebook() {
                 className="min-h-48 flex-1 resize-none border-0 bg-transparent px-0 py-2 text-sm leading-7 outline-none placeholder:text-(--color-muted)/60 focus:ring-0 sm:text-base"
               />
             </div>
-
-            <div className="mt-4 flex shrink-0 items-center justify-between gap-3 border-t border-(--color-border) pt-3">
-              <p className="text-xs text-(--color-muted)">{content.length} characters</p>
-
-              <button type="button" onClick={() => setShowNotesPanel((previous) => !previous)} className="rounded-xl border border-(--color-border) px-3 py-2 text-xs font-semibold transition hover:bg-(--color-soft) lg:hidden">
-                {showNotesPanel ? 'Hide Notes' : 'Show Notes'}
-              </button>
-            </div>
           </div>
         </section>
 
-        <aside className={`${showNotesPanel ? 'flex' : 'hidden'} min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-(--color-border) bg-(--color-surface) shadow-sm lg:flex lg:w-90 lg:shrink-0`}>
+        {/* mobile add button section */}
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 h-20 lg:hidden z-51">
+          <div className="absolute inset-0 bg-(--color-bg)/65 backdrop-blur-sm" />
+
+          <button
+            type="button"
+            onClick={() => setShowNotesPanel((previous) => !previous)}
+            aria-label="Add new task"
+            className="pointer-events-auto absolute bottom-5 left-1/2 flex h-13 w-13 -translate-x-1/2 items-center justify-center rounded-full bg-linear-to-br from-(--color-primary) to-(--color-primaryDark) text-white shadow-lg transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Plus size={22} />
+          </button>
+        </div>
+
+        {showNotesPanel && <button type="button" aria-label="Close notes list" onClick={closeNotesPanel} className="fixed inset-0 z-40 bg-(--color-text)/45 backdrop-blur-md lg:hidden" />}
+
+        <aside
+          className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[84dvh] max-sm:pb-21 min-h-0 flex-col overflow-hidden rounded-t-3xl border-t border-(--color-border) bg-(--color-surface) shadow-2xl transition-transform duration-300 ease-out lg:static lg:z-auto lg:max-h-none lg:w-90 lg:shrink-0 lg:translate-y-0 lg:rounded-2xl lg:border lg:shadow-sm ${
+            showNotesPanel ? 'translate-y-0' : 'pointer-events-none translate-y-full lg:pointer-events-auto'
+          }`}
+        >
           <header className="shrink-0 border-b border-(--color-border)">
+            <div className="px-4 pt-3 lg:hidden">
+              <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-(--color-border)" />
+            </div>
+
             <div className="flex min-h-16 items-center justify-between gap-2 px-4 py-3">
               <div className="flex min-w-0 items-center gap-2">
                 <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-(--color-soft) text-(--color-primary)">
@@ -462,69 +544,19 @@ export default function Notebook() {
               <div className="flex shrink-0 items-center gap-1">
                 <button
                   type="button"
-                  onClick={handleSearchToggle}
-                  title={showSearch ? 'Close search' : 'Search notes'}
-                  aria-label={showSearch ? 'Close search' : 'Search notes'}
-                  className={`flex size-9 items-center justify-center rounded-xl transition ${showSearch ? 'bg-(--color-soft) text-(--color-primary)' : 'text-(--color-muted) hover:bg-(--color-soft) hover:text-(--color-text)'}`}
+                  onClick={closeNotesPanel}
+                  title="Close notes"
+                  aria-label="Close notes"
+                  className="flex size-9 items-center justify-center rounded-xl text-(--color-muted) transition hover:bg-(--color-soft) hover:text-(--color-text) lg:hidden"
                 >
-                  {showSearch ? <X size={17} /> : <Search size={17} />}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowArchived((previous) => !previous)
-                    setSelectedDate(getDateKey())
-                    setSearch('')
-                    setOpenMenuId(null)
-                  }}
-                  title={showArchived ? 'Show saved notes' : 'Show archived notes'}
-                  aria-label={showArchived ? 'Show saved notes' : 'Show archived notes'}
-                  className={`flex size-9 items-center justify-center rounded-xl transition ${showArchived ? 'bg-(--color-soft) text-(--color-primary)' : 'text-(--color-muted) hover:bg-(--color-soft) hover:text-(--color-text)'}`}
-                >
-                  {showArchived ? <ArchiveRestore size={17} /> : <Archive size={17} />}
-                </button>
-
-                <button type="button" onClick={handleNewNote} title="Create note" aria-label="Create note" className="flex size-9 items-center justify-center rounded-xl bg-(--color-primary) text-white transition hover:bg-(--color-primaryDark)">
-                  <Plus size={18} />
+                  <X size={18} />
                 </button>
               </div>
             </div>
 
-            {showSearch && (
-              <div className="px-4 pb-3">
-                <div className="flex items-center gap-2 rounded-xl border border-(--color-border) bg-(--color-bg) px-3">
-                  <Search size={16} className="shrink-0 text-(--color-muted)" />
-                  <input
-                    ref={searchRef}
-                    type="text"
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Search notes..."
-                    className="h-10 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-(--color-muted)/70"
-                  />
-                  {search && (
-                    <button type="button" onClick={() => setSearch('')} aria-label="Clear search" className="flex size-7 shrink-0 items-center justify-center rounded-lg text-(--color-muted) hover:bg-(--color-soft)">
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <div className="flex items-center gap-1 border-t border-(--color-border) px-3 py-3">
-              <button
-                type="button"
-                onClick={handleOlderDates}
-                disabled={historyOffset === 0}
-                title="Newer dates"
-                aria-label="Newer dates"
-                className="flex size-7 shrink-0 items-center justify-center rounded-lg text-(--color-muted) transition hover:bg-(--color-soft) disabled:cursor-not-allowed disabled:opacity-30"
-              >
-                <ChevronLeft size={17} />
-              </button>
-
-              <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto overscroll-contain no-scrollbar">
+            {/* history date */}
+            <div className="border-t border-(--color-border) px-3 py-3">
+              <div className="no-scrollbar flex items-stretch gap-2 overflow-x-auto overscroll-x-contain">
                 {historyDates
                   .slice()
                   .reverse()
@@ -537,48 +569,37 @@ export default function Notebook() {
                         type="button"
                         key={key}
                         onClick={() => handleDateSelect(key)}
-                        className={`relative flex min-w-11 shrink-0 flex-col items-center justify-center rounded-xl px-2 py-2 transition ${
-                          isSelected ? 'bg-(--color-primary) text-white' : 'text-(--color-muted) hover:bg-(--color-soft) hover:text-(--color-text)'
-                        }`}
                         title={formatDate(key)}
+                        className={`relative flex min-w-15 shrink-0 flex-col items-center justify-center rounded-xl px-3 py-2.5 transition ${
+                          isSelected ? 'bg-(--color-primary) text-white shadow-sm' : 'text-(--color-muted) hover:bg-(--color-soft) hover:text-(--color-text)'
+                        }`}
                       >
-                        <span className="text-[10px] font-medium">
-                          {date.toLocaleDateString('en-IN', {
-                            weekday: 'short',
-                          })}
-                        </span>
-                        <span className="mt-0.5 text-sm font-bold">{date.getDate()}</span>
-                        {count > 0 && <span className={`mt-1 size-1 rounded-full ${isSelected ? 'bg-white' : 'bg-(--color-primary)'}`} />}
+                        <span className="text-[10px] font-semibold uppercase tracking-wide">{date.toLocaleDateString('en-IN', { weekday: 'short' })}</span>
+
+                        <span className="my-1 text-lg font-bold leading-none">{date.getDate()}</span>
+
+                        <span className="text-[10px] font-medium">{date.toLocaleDateString('en-IN', { month: 'short' })}</span>
+
+                        {count > 0 && <span className={`mt-1.5 size-1 rounded-full ${isSelected ? 'bg-white' : 'bg-(--color-primary)'}`} />}
                       </button>
                     )
                   })}
               </div>
 
-              <button
-                type="button"
-                onClick={handleNewerDates}
-                disabled={historyOffset === 0}
-                title="Newer dates"
-                aria-label="Newer dates"
-                className="flex size-7 shrink-0 items-center justify-center rounded-lg text-(--color-muted) transition hover:bg-(--color-soft) disabled:cursor-not-allowed disabled:opacity-30"
-              >
-                <ChevronRight size={17} />
-              </button>
-            </div>
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <p className="truncate text-xs font-semibold text-(--color-muted)">{formatDate(selectedDate)}</p>
 
-            <div className="flex items-center justify-between gap-2 px-4 pb-3">
-              <p className="truncate text-xs font-semibold text-(--color-muted)">{formatDate(selectedDate)}</p>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedDate(getDateKey())
-                  setHistoryOffset(0)
-                }}
-                className="shrink-0 text-xs font-semibold text-(--color-primary) hover:underline"
-              >
-                Today
-              </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedDate(getDateKey())
+                    setHistoryOffset(0)
+                  }}
+                  className="shrink-0 text-xs font-semibold text-(--color-primary) hover:underline"
+                >
+                  Today
+                </button>
+              </div>
             </div>
           </header>
 
@@ -623,20 +644,18 @@ export default function Notebook() {
                         </button>
 
                         {openMenuId === note.id && (
-                          <div className="absolute right-0 top-9 z-30 w-44 overflow-hidden rounded-xl border border-(--color-border) bg-(--color-surface) p-1.5 shadow-lg">
-                            <button type="button" onClick={() => handleEdit(note)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition hover:bg-(--color-soft)">
+                          <div className="absolute right-8 top-2 z-30 w-44 overflow-hidden rounded-xl border border-(--color-border) bg-(--color-surface) p-1.5 shadow-lg">
+                            <button type="button" onClick={() => handleEdit(note)} className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-sm transition hover:bg-(--color-soft)">
                               <NotebookPen size={15} className="text-(--color-muted)" />
                               Edit
                             </button>
 
-                            <button type="button" onClick={() => handleArchive(note)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition hover:bg-(--color-soft)">
+                            <button type="button" onClick={() => handleArchive(note)} disabled={actionLoading} className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-sm transition hover:bg-(--color-soft) disabled:opacity-50">
                               {note.archived ? <ArchiveRestore size={15} className="text-(--color-muted)" /> : <Archive size={15} className="text-(--color-muted)" />}
                               {note.archived ? 'Unarchive' : 'Archive'}
                             </button>
 
-                            <div className="my-1 border-t border-(--color-border)" />
-
-                            <button type="button" onClick={() => requestDelete(note)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-(--color-danger) transition hover:bg-(--color-dangerBg)">
+                            <button type="button" onClick={() => requestDelete(note)} className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-sm text-(--color-danger) transition hover:bg-(--color-dangerBg)">
                               <Trash2 size={15} />
                               Delete
                             </button>
@@ -651,38 +670,22 @@ export default function Notebook() {
               <div className="flex min-h-48 flex-col items-center justify-center px-4 py-8 text-center">
                 <div className="mb-3 flex size-12 items-center justify-center rounded-2xl bg-(--color-soft) text-(--color-primary)">{search ? <Search size={21} /> : <FaRegStickyNote size={21} />}</div>
 
-                <h3 className="text-sm font-semibold">{search ? 'No notes found' : showArchived ? 'No archived notes' : 'No notes for this date'}</h3>
+                <h3 className="text-sm font-semibold">{loadingNotes ? 'Loading notes...' : apiError ? 'Unable to load notes' : search ? 'No notes found' : showArchived ? 'No archived notes' : 'No notes for this date'}</h3>
 
                 <p className="mt-1 max-w-52 text-xs leading-5 text-(--color-muted)">{search ? 'Try another keyword to find your note.' : showArchived ? 'Archived notes will appear here.' : 'Create a note to keep your thoughts organized.'}</p>
 
-                {!showArchived && !search && (
-                  <button type="button" onClick={handleNewNote} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-(--color-primary) px-3 py-2 text-xs font-semibold text-white transition hover:bg-(--color-primaryDark)">
-                    <Plus size={14} />
-                    Create Note
-                  </button>
-                )}
+              
               </div>
             )}
           </div>
-
-          <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-(--color-border) px-4 py-3">
-            <span className="text-xs text-(--color-muted)">
-              {notes.filter((note) => Boolean(note.archived) === showArchived).length} total {showArchived ? 'archived' : 'saved'}
-            </span>
-
-            <button type="button" onClick={handleNewNote} className="inline-flex items-center gap-1.5 text-xs font-semibold text-(--color-primary) hover:underline">
-              <Plus size={14} />
-              New note
-            </button>
-          </footer>
         </aside>
       </div>
 
       {showDeleteConfirm && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-9999 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) {
+            if (event.target === event.currentTarget && !actionLoading) {
               setShowDeleteConfirm(false)
               setDeleteTargetId(null)
             }
@@ -706,6 +709,7 @@ export default function Notebook() {
               <button
                 type="button"
                 onClick={() => {
+                  if (actionLoading) return
                   setShowDeleteConfirm(false)
                   setDeleteTargetId(null)
                 }}
@@ -719,18 +723,24 @@ export default function Notebook() {
             <div className="mt-6 flex justify-end gap-2">
               <button
                 type="button"
+                disabled={actionLoading}
                 onClick={() => {
                   setShowDeleteConfirm(false)
                   setDeleteTargetId(null)
                 }}
-                className="rounded-xl border border-(--color-border) px-4 py-2.5 text-sm font-semibold transition hover:bg-(--color-soft)"
+                className="rounded-xl border border-(--color-border) px-4 py-2.5 text-sm font-semibold transition hover:bg-(--color-soft) disabled:opacity-50"
               >
                 Cancel
               </button>
 
-              <button type="button" onClick={handleDelete} className="inline-flex items-center gap-2 rounded-xl bg-(--color-danger) px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90">
+              <button
+                type="button"
+                disabled={actionLoading}
+                onClick={handleDelete}
+                className="inline-flex items-center gap-2 rounded-xl bg-(--color-danger) px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+              >
                 <Trash2 size={15} />
-                Delete
+                {actionLoading ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>
